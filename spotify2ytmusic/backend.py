@@ -12,6 +12,40 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 
 
+# AGGIUNTO PER LOG SU FILE
+import csv
+fileOutput = None  # Variabile globale per gestire il file CSV
+
+def inizializzaFile(filename):
+    global fileOutput
+    if fileOutput is None:  # Evita di riaprire il file se già aperto
+        try:
+            # Apre il file in modalità append (per aggiungere nuove righe) e per scrivere come CSV
+            fileOutput = open(filename, "a", newline='', encoding="utf-8")
+        except Exception as e:
+            print(f"Errore nell'apertura del file: {e}")
+
+def scriviFile(riga):
+    if fileOutput:
+        try:
+            writer = csv.writer(fileOutput)
+            writer.writerow(riga)  # Scrive una riga nel file CSV
+        except Exception as e:
+            print(f"Errore nella scrittura del file: {e}")
+
+def chiudiFile():
+    global fileOutput
+    if fileOutput:
+        try:
+            fileOutput.close()  # Chiude il file CSV
+            fileOutput = None  # Resetta la variabile dopo la chiusura
+        except Exception as e:
+            print(f"Errore nella chiusura del file: {e}")
+
+# FINE AGGIUNTA FILE
+matchIncompleto_count = 0 #aggiunta per contare i match incompleti
+
+
 SongInfo = namedtuple("SongInfo", ["title", "artist", "album"])
 
 
@@ -253,6 +287,8 @@ def lookup_song(
     Returns:
         dict: The infos of the researched song
     """
+
+    """ NON USO LA RICERCA PER ALBUM PERCHé RITORNA LA VERSIONE VIDEO PER GLI ACCOUNT NON PREMIUM
     albums = yt.search(query=f"{album_name} by {artist_name}", filter="albums")
     for album in albums[:3]:
         # print(album)
@@ -265,12 +301,13 @@ def lookup_song(
             # print(f"{track['videoId']} - {track['title']} - {track['artists'][0]['name']}")
         except Exception as e:
             print(f"Unable to lookup album ({e}), continuing...")
+    """
 
-    query = f"{track_name} by {artist_name}"
+    query = f"{track_name} {artist_name}" #PRIMA C'ERA 'BY'
     if details:
         details.query = query
         details.suggestions = yt.get_search_suggestions(query=query)
-    songs = yt.search(query=query, filter="songs")
+    songs = yt.search(query=query, filter="songs")    
 
     match yt_search_algo:
         case 0:
@@ -279,6 +316,7 @@ def lookup_song(
             return songs[0]
 
         case 1:
+            numeroCanzoniStampate = 0 #stampo solo le prime x canzoni, la probabilità che un possibile match sia più in basso è bassa
             for song in songs:
                 if (
                     song["title"] == track_name
@@ -286,8 +324,22 @@ def lookup_song(
                     and song["album"]["name"] == album_name
                 ):
                     return song
-                # print(f"SONG: {song['videoId']} - {song['title']} - {song['artists'][0]['name']} - {song['album']['name']}")
+                else:
+                    if numeroCanzoniStampate >= 3:
+                        continue
+                    numeroCanzoniStampate += 1
+                    print(f"\tNO-MATCH: {song['title']} - {song['artists'][0]['name']} - {song['album']['name']} - {song['videoId']}")
+            print(f"\t-->NOT FOUND. using first result: https://youtu.be/{songs[0]['videoId']}")
 
+            #scrivo sul file di log le canzoni con match da controllare
+            scriviFile(["Spotify", track_name, artist_name, album_name])
+            scriviFile(["YouTubeMusic", songs[0]['title'], songs[0]['artists'][0]['name'], songs[0]['album']['name'], f"https://youtu.be/{songs[0]['videoId']}"])
+            scriviFile([])
+
+            global matchIncompleto_count  # Dichiara che stiamo usando la variabile globale
+            matchIncompleto_count += 1 #conto un match incompleto in più
+
+            return songs[0]#aggiunto: se non trovo un match preciso, uso la prima canzone
             raise ValueError(
                 f"Did not find {track_name} by {artist_name} from {album_name}"
             )
@@ -376,7 +428,10 @@ def copier(
     duplicate_count = 0
     error_count = 0
 
+    inizializzaFile("canzoniNO-MATCH.csv")#Aggiunto
+
     for src_track in src_tracks:
+        print("======\n\n======")#aggiunto
         print(f"Spotify:   {src_track.title} - {src_track.artist} - {src_track.album}")
 
         try:
@@ -392,7 +447,7 @@ def copier(
         if "artists" in dst_track and len(dst_track["artists"]) > 0:
             yt_artist_name = dst_track["artists"][0]["name"]
         print(
-            f"  Youtube: {dst_track['title']} - {yt_artist_name} - {dst_track['album'] if 'album' in dst_track else '<Unknown>'}"
+            f"Youtube: {dst_track['title']} - {yt_artist_name} - {dst_track['album']['name'] if 'album' in dst_track else '<Unknown>'}"
         )
 
         if dst_track["videoId"] in tracks_added_set:
@@ -425,8 +480,9 @@ def copier(
 
     print()
     print(
-        f"Added {len(tracks_added_set)} tracks, encountered {duplicate_count} duplicates, {error_count} errors"
+        f"Added {len(tracks_added_set)} tracks, encountered {duplicate_count} duplicates, {error_count} errors, {matchIncompleto_count} incomplete matches"
     )
+    chiudiFile()#Aggiunto
 
 
 def copy_playlist(

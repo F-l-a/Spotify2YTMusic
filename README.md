@@ -1,3 +1,7 @@
+### Aggiunte personali
+Modifica di `backend.py` per ricercare match perfetto Titolo-Artista-Album. Se non trova il match nelle prime 20 canzoni usa la prima e lo riporta nel file output canzoniNO-MATCH.csv
+
+
 ### Overview
 
 This is a set of scripts for copying "liked" songs and playlists from Spotify to YTMusic. It provides a GUI (implemented by Yoween, formerly called spotify_to_ytmusic_gui).
