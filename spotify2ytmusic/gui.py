@@ -341,7 +341,7 @@ class Window:
         Args:
             action (int): 0 to load the settings, 1 to write the settings.
         """
-        texts = {0: "Exact match", 1: "Ricerca match perfetto Titolo-Artista-Album. Se non trova nelle prime 20 canzoni usa la prima e lo riporta nel file output canzoniNO-MATCH.csv", 2: "Fuzzy match with videos"}
+        texts = {0: "Exact match", 1: "Ricerca match perfetto Titolo-Artista-Album. Se non trova nelle prime 20 canzoni, ricerca match Titolo-Artista.\n Come ultima scelta, usa la prima canzone e lo riporta nel file output canzoniNO-MATCH.csv", 2: "Fuzzy match with videos"}
 
         exist = True
         if action == 0:
@@ -364,7 +364,7 @@ class Window:
                 }
                 json.dump(settings, f)
 
-        self.algo_label.config(text=f"Algorithm (USARE 1): {texts[self.var_algo.get()]}")
+        self.algo_label.config(text=f"Algorithm (USARE 1):\n {texts[self.var_algo.get()]}")
         self.root.update()
 
 

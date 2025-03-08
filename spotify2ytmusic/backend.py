@@ -321,6 +321,7 @@ def lookup_song(
                 if (
                     song["title"] == track_name
                     and song["artists"][0]["name"] == artist_name
+                    and song["album"] is not None
                     and song["album"]["name"] == album_name
                 ):
                     return song
@@ -328,12 +329,23 @@ def lookup_song(
                     if numeroCanzoniStampate >= 3:
                         continue
                     numeroCanzoniStampate += 1
-                    print(f"\tNO-MATCH: {song['title']} - {song['artists'][0]['name']} - {song['album']['name']} - {song['videoId']}")
+                    print(f"\tNO-MATCH: {song['title']} - {song['artists'][0]['name']} - {song['album']['name'] if song['album'] is not None else "no-album"} - {song['videoId']}")
+            
+            #ripeto la ricerca senza considerare l'album (alcune canzoni non hanno un album).anche se il match non è perfetto, non ha senso loggare le canzoni trovate così
+            print("\t-->Performing album-independent matching...")
+            for song in songs:
+                if (
+                    song["title"] == track_name
+                    and song["artists"][0]["name"] == artist_name
+                ):
+                    return song
+                
+            #se ancora non ho trovato nulla loggo e uso il primo risultato
             print(f"\t-->NOT FOUND. using first result: https://youtu.be/{songs[0]['videoId']}")
 
             #scrivo sul file di log le canzoni con match da controllare
             scriviFile(["Spotify", track_name, artist_name, album_name])
-            scriviFile(["YouTubeMusic", songs[0]['title'], songs[0]['artists'][0]['name'], songs[0]['album']['name'], f"https://youtu.be/{songs[0]['videoId']}"])
+            scriviFile(["YouTubeMusic", songs[0]['title'], songs[0]['artists'][0]['name'], songs[0]['album']['name'] if songs[0]['album'] is not None else "no-album", f"https://youtu.be/{songs[0]['videoId']}"])
             scriviFile([])
 
             global matchIncompleto_count  # Dichiara che stiamo usando la variabile globale
@@ -341,7 +353,7 @@ def lookup_song(
 
             return songs[0]#aggiunto: se non trovo un match preciso, uso la prima canzone
             raise ValueError(
-                f"Did not find {track_name} by {artist_name} from {album_name}"
+                f"Did not find {track_name} by {artist_name} from {album_name}. Added the first result of the list"
             )
 
         case 2:
@@ -446,9 +458,16 @@ def copier(
         yt_artist_name = "<Unknown>"
         if "artists" in dst_track and len(dst_track["artists"]) > 0:
             yt_artist_name = dst_track["artists"][0]["name"]
-        print(
-            f"Youtube: {dst_track['title']} - {yt_artist_name} - {dst_track['album']['name'] if 'album' in dst_track else '<Unknown>'}"
-        )
+
+        album_info = dst_track.get("album")  # Prende album, può essere None o un dizionario
+        if album_info is None:
+            album_str = "no-album"
+        elif "name" in album_info:
+            album_str = album_info["name"]
+        else:
+            album_str = str(album_info)  # Se non ha 'name', stampa tutto l'oggetto album
+
+        print(f"Youtube: {dst_track['title']} - {yt_artist_name} - {album_str}")
 
         if dst_track["videoId"] in tracks_added_set:
             print("(DUPLICATE, this track has already been added)")
