@@ -65,6 +65,9 @@ class Window:
         self.root.geometry("1280x720")
         self.root.config(background="#26242f")
 
+        # Intercetta la chiusura della finestra
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
         style = ttk.Style()
         style.theme_use("default")
         style.configure(
@@ -90,7 +93,7 @@ class Window:
 
         # Create a Frame for the tabs
         self.tab_frame = ttk.Frame(self.paned_window)
-        self.paned_window.add(self.tab_frame, weight=2)
+        self.paned_window.add(self.tab_frame, weight=1)
 
         # Create the TabControl (notebook)
         self.tabControl = ttk.Notebook(self.tab_frame)
@@ -118,7 +121,7 @@ class Window:
 
         # Create a Frame for the logs
         self.log_frame = ttk.Frame(self.paned_window)
-        self.paned_window.add(self.log_frame, weight=1)
+        self.paned_window.add(self.log_frame, weight=10)
 
         # Create the Text widget for the logs
         self.logs = tk.Text(self.log_frame, font=("Helvetica", 14))
@@ -198,18 +201,45 @@ class Window:
         # tab6
         create_label(
             self.tab6,
-            text="Here, you can copy a specific playlist from Spotify to YT Music.",
+            text="TRASFERISCI PLAYLIST SPECIFICA",
         ).pack(anchor=tk.CENTER, expand=True)
-        create_label(self.tab6, text="Spotify playlist ID:").pack(
-            anchor=tk.CENTER, expand=True
-        )
-        self.spotify_playlist_id = tk.Entry(self.tab6)
-        self.spotify_playlist_id.pack(anchor=tk.CENTER, expand=True)
-        create_label(self.tab6, text="YT Music playlist ID:").pack(
-            anchor=tk.CENTER, expand=True
-        )
-        self.yt_playlist_id = tk.Entry(self.tab6)
-        self.yt_playlist_id.pack(anchor=tk.CENTER, expand=True)
+
+        # SORGENTE: Spotify playlist ID
+        source_frame = ttk.Frame(self.tab6)
+        source_frame.pack(anchor=tk.CENTER, expand=True)
+
+        create_label(
+            source_frame,
+            text="SORGENTE: Spotify playlist ID:",
+        ).pack(side=tk.LEFT)
+
+        self.spotify_playlist_id = tk.Entry(source_frame)
+        self.spotify_playlist_id.pack(side=tk.LEFT)
+
+        create_label(
+            self.tab6,
+            text="- : Usa come sorgente i brani preferiti di Spotify\n----------",
+        ).pack(anchor=tk.CENTER, expand=True)
+
+        # DESTINAZIONE: YT Music playlist ID
+        destination_frame = ttk.Frame(self.tab6)
+        destination_frame.pack(anchor=tk.CENTER, expand=True)
+
+        create_label(
+            destination_frame,
+            text="DESTINAZIONE: YT Music playlist ID:",
+        ).pack(side=tk.LEFT)
+
+        self.yt_playlist_id = tk.Entry(destination_frame)
+        self.yt_playlist_id.pack(side=tk.LEFT)
+
+        create_label(
+            self.tab6,
+            text="Vuoto: crea una playlist usando il nome della playlist di spotify\n"
+                 "+NomePlaylist : crea una nuova playlist NomePlaylist. Aggiunge i brani se è già presente una playlist NomePlaylist.\n"
+                 "- : aggiunge il brano ai salvati, mettendo semplicemente like al brano/video",
+        ).pack(anchor=tk.CENTER, expand=True)
+
         create_button(
             self.tab6,
             text="Copy",
@@ -222,6 +252,7 @@ class Window:
                     False,
                     0.1,
                     self.var_algo.get(),
+                    False
                 ),
                 next_tab=self.tab6,
             ),
@@ -244,7 +275,7 @@ class Window:
         auto_scroll.select()
 
         self.var_algo = tk.IntVar()
-        self.var_algo.set(0)
+        self.var_algo.set(3)
 
         self.algo_label = create_label(self.tab7, text=f"Algorithm: ")
         self.algo_label.pack(anchor=tk.CENTER, expand=True)
@@ -253,7 +284,7 @@ class Window:
             self.tab7,
             self.var_algo,
             0,
-            *[1, 2],
+            *[1, 2, 3],
             command=lambda x: self.load_write_settings(1),
         )
         menu_algo.pack(anchor=tk.CENTER, expand=True)
@@ -341,7 +372,7 @@ class Window:
         Args:
             action (int): 0 to load the settings, 1 to write the settings.
         """
-        texts = {0: "Exact match", 1: "Ricerca match perfetto Titolo-Artista-Album. Se non trova nelle prime 20 canzoni, ricerca match Titolo-Artista.\n Come ultima scelta, usa la prima canzone e lo riporta nel file output canzoniNO-MATCH.csv", 2: "Fuzzy match with videos"}
+        texts = {0: "Exact match", 1: "Ricerca match perfetto Titolo-Artista-Album. Se non trova nelle prime 20 canzoni, ricerca match Titolo-Artista.\n Come ultima scelta, usa la prima canzone e lo riporta nel file output canzoniNO-MATCH.csv", 2: "Fuzzy match with videos", 3: "Normalized Metadata Matching Algorithm"}
 
         exist = True
         if action == 0:
@@ -364,8 +395,14 @@ class Window:
                 }
                 json.dump(settings, f)
 
-        self.algo_label.config(text=f"Algorithm (USARE 1):\n {texts[self.var_algo.get()]}")
+        self.algo_label.config(text=f"Algorithm (USARE 1 o 3):\n {texts[self.var_algo.get()]}")
         self.root.update()
+
+    def on_closing(self):
+        """Gestisce la chiusura della finestra."""
+        print("Closing application...", file=sys.__stdout__)
+        backend.chiudiFile()  # Chiama la funzione di cleanup dal backend
+        self.root.destroy()  # Chiude la finestra
 
 
 def main() -> None:
