@@ -1,4 +1,10 @@
-### Aggiunte personali
+# USAGE GUIDE with examples:
+https://rentry.co/Spotify-to-YoutubeMusic
+
+***
+***
+
+# Personal Notes
 - Modifica di `backend.py` per ricercare match perfetto Titolo-Artista-Album. Se non trova il match nelle prime 20 canzoni usa la prima e lo riporta nel file output canzoniNO-MATCH.csv
 - Aggiunta logica per trasferimento di playlist specifiche
 - Aggiunto algoritmo 3, implementato da [FrederikBertelsen](https://github.com/FrederikBertelsen/spotify_to_ytmusic/tree/main) in [pr #184](https://github.com/linsomniac/spotify_to_ytmusic/pull/184)
@@ -7,6 +13,9 @@ TODO/Note:
 - aggiungere tab per calcolare differenza tra 2 playlist di spotify. es: `backupNuovo - backupVecchio = CanzoniDaAggiungereAYT (+ canzoniAggiunte su YT tra i due backup. come toglierle? tanto non sono duplicate)`
 - stampare nel csv il link di spotify. aggiungere campo url nella namedTuple SongInfo
 
+***
+***
+# Original Instructions
 ### Overview
 
 This is a set of scripts for copying "liked" songs and playlists from Spotify to YTMusic. It provides a GUI (implemented by Yoween, formerly called spotify_to_ytmusic_gui).
