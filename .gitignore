@@ -172,6 +172,5 @@ cython_debug/
 .pypirc
 # sensitive info
 oauth.json
-raw_headers.txt
 playlists.json
 mismatched_songs.csv
