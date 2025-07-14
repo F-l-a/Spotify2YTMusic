@@ -328,12 +328,12 @@ class Window:
 
         def run_in_thread():
             if os.path.exists("oauth.json"):
-                print("File detected, auto login")
+                print("oauth.json file detected, manual login to YouTube not required")
             elif auto:
-                print("No file detected. Manual login required")
+                print("oauth.json file not detected. Manual login required. \n\tYou can automate this: Close this window and follow Step5, Step6 and Step7 of https://rentry.co/Spotify-to-YoutubeMusic\n")
                 return
             else:
-                print("File not detected, login required")
+                print("Opening the console for manual login...")
 
                 # Open a new console window to run the command
                 if os.name == "nt":  # If the OS is Windows
@@ -372,7 +372,7 @@ class Window:
         Args:
             action (int): 0 to load the settings, 1 to write the settings.
         """
-        texts = {0: "Exact match", 1: "Ricerca match perfetto Titolo-Artista-Album. Se non trova nelle prime 20 canzoni, ricerca match Titolo-Artista.\n Come ultima scelta, usa la prima canzone e lo riporta nel file output canzoniNO-MATCH.csv", 2: "Fuzzy match with videos", 3: "Normalized Metadata Matching Algorithm"}
+        texts = {0: "Exact match", 1: "Search for perfect Title-Artist-Album match. If not found in first 20 songs, search Title-Artist match. As last choice, use first song and report it in output file mismatched_songs.csv", 2: "Fuzzy match with videos", 3: "Normalized Metadata Matching Algorithm"}
 
         exist = True
         if action == 0:
@@ -395,7 +395,7 @@ class Window:
                 }
                 json.dump(settings, f)
 
-        self.algo_label.config(text=f"Algorithm (USARE 1 o 3):\n {texts[self.var_algo.get()]}")
+        self.algo_label.config(text=f"Algorithm (USE 1 or 3 - 3 is better):\n {texts[self.var_algo.get()]}")
         self.root.update()
 
     def on_closing(self):

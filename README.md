@@ -5,7 +5,7 @@ https://rentry.co/Spotify-to-YoutubeMusic
 ***
 
 # Personal Notes
-- Modifica di `backend.py` per ricercare match perfetto Titolo-Artista-Album. Se non trova il match nelle prime 20 canzoni usa la prima e lo riporta nel file output canzoniNO-MATCH.csv
+- Modifica di `backend.py` per ricercare match perfetto Titolo-Artista-Album. Se non trova il match nelle prime 20 canzoni usa la prima e lo riporta nel file output mismatched_songs.csv
 - Aggiunta logica per trasferimento di playlist specifiche
 - Aggiunto algoritmo 3, implementato da [FrederikBertelsen](https://github.com/FrederikBertelsen/spotify_to_ytmusic/tree/main) in [pr #184](https://github.com/linsomniac/spotify_to_ytmusic/pull/184)
 

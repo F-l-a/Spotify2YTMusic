@@ -43,12 +43,12 @@ def inizializzaFile(filename):
     global fileOutput
     if fileOutput is None:  # Evita di riaprire il file se già aperto
         try:
-            # Apre il file in modalità append (per aggiungere nuove righe) e per scrivere come CSV
+            # Open file in append mode (to add new rows) and write as CSV
             fileOutput = open(filename, "a", newline='', encoding="utf-8")
             
-            scriviFile(["Inizio Sessione", f"Numero totale di tracce: {numeroTotaleTracce}", f"Playlist Sorgente: {playlistSorgente}", f"Playlist Destinazione: {playlistDestinazione}"])
+            scriviFile(["Session Start", f"Total number of tracks: {numeroTotaleTracce}", f"Source Playlist: {playlistSorgente}", f"Destination Playlist: {playlistDestinazione}"])
         except Exception as e:
-            print(f"Errore nell'apertura del file: {e}")
+            print(f"Error opening file: {e}")
 
 def scriviFile(riga):
     if fileOutput:
@@ -57,23 +57,23 @@ def scriviFile(riga):
             if riga:  # Se la riga non è vuota, aggiungi il timestamp
                 timestamp = datetime.now().strftime("%y-%m-%d %H:%M:%S")
                 writer.writerow([timestamp] + riga)
-            else:  # Se la riga è vuota, scrivi una riga vuota
+            else:  # If row is empty, write empty row
                 writer.writerow([])
         except Exception as e:
-            print(f"Errore nella scrittura del file: {e}")
+            print(f"Error writing to file: {e}")
 
 def chiudiFile():
     global fileOutput
     if fileOutput:
         try:
             
-            scriviFile(["Fine Sessione", f"Numero di elementi processati: {numeroTracciaCorrente}", f"Numero di match incompleti: {matchIncompleto_count}", f"Numero di canzoni non trovate: {error_count}", f"Numero di tracce saltate perché duplicate: {duplicate_count}"])
-            scriviFile([]) # Aggiunge una riga vuota alla fine del file per separare le sessioni
+            scriviFile(["Session End", f"Number of processed items: {numeroTracciaCorrente}", f"Number of incomplete matches: {matchIncompleto_count}", f"Number of songs not found: {error_count}", f"Number of tracks skipped because duplicate: {duplicate_count}"])
+            scriviFile([]) # Add empty row at end of file to separate sessions
             scriviFile([])
-            fileOutput.close()  # Chiude il file CSV
-            fileOutput = None  # Resetta la variabile dopo la chiusura
+            fileOutput.close()  # Close CSV file
+            fileOutput = None  # Reset variable after closing
         except Exception as e:
-            print(f"Errore nella chiusura del file: {e}")
+            print(f"Error closing file: {e}")
             raise e
 
 # FINE AGGIUNTA FILE
@@ -87,15 +87,23 @@ def get_ytmusic() -> YTMusic:
     """
     if not os.path.exists("oauth.json"):
         print("ERROR: No file 'oauth.json' exists in the current directory.")
-        print("       Have you logged in to YTMusic?  Run 'ytmusicapi oauth' to login")
+        print("       Have you logged in to YTMusic?  Run 'ytmusicapi oauth' to login\n\tYou can automate this: Close this window and follow Step5, Step6 and Step7 of https://rentry.co/Spotify-to-YoutubeMusic\n")
         sys.exit(1)
 
     try:
-        return YTMusic("oauth.json")
+        yt_credentials = YTMusic("oauth.json")
+        # Test credentials validity with a lightweight API call
+        try:
+            print(f"Using Youtube account {yt_credentials.get_account_info().get('accountName')}. ( Wrong account? Close this window and follow Step5, Step6 and Step7 of https://rentry.co/Spotify-to-YoutubeMusic )\n")
+        except Exception as e:
+            print(f"ERROR: YouTube Music credentials appear to be invalid or expired. Error description: {e}")
+            print("     Close this window and follow Step5, Step6 and Step7 of https://rentry.co/Spotify-to-YoutubeMusic")
+            sys.exit(1)
+        return yt_credentials
     except json.decoder.JSONDecodeError as e:
         print(f"ERROR: JSON Decode error while trying start YTMusic: {e}")
         print("       This typically means a problem with a 'oauth.json' file.")
-        print("       Have you logged in to YTMusic?  Run 'ytmusicapi oauth' to login")
+        print("       Have you logged in to YTMusic?  Run 'ytmusicapi oauth' to login\n\tYou can automate this: Close this window and follow Step5, Step6 and Step7 of https://rentry.co/Spotify-to-YoutubeMusic\n")
         sys.exit(1)
 
 
@@ -217,7 +225,7 @@ def iter_spotify_playlist(
     src_pl = find_spotify_playlist(spotify_pls, src_pl_id)
     src_pl_name = src_pl["name"]
 
-    print(f"SORGENTE: Spotify Playlist: {src_pl_name}")
+    print(f"SOURCE: Spotify Playlist: {src_pl_name}")
 
     pl_tracks = src_pl["tracks"]
     if reverse_playlist:
@@ -311,7 +319,7 @@ def lookup_song(
         `track_name` (str): The name of the researched track
         `artist_name` (str): The name of the researched track's artist
         `album_name` (str): The name of the researched track's album
-        `yt_search_algo` (int): 0 for exact matching, 1 for extended matching (Ricerca match perfetto Titolo-Artista-Album. Se non trova nelle prime 20 canzoni, ricerca match Titolo-Artista. Come ultima scelta, usa la prima canzone e lo riporta nel file output canzoniNO-MATCH.csv), 2 for approximate matching (search in videos), 3 for normalized metadata matching
+        `yt_search_algo` (int): 0 for exact matching, 1 for extended matching (Search for perfect Title-Artist-Album match. If not found in first 20 songs, search Title-Artist match. As last choice, use first song and report it in output file songsNO-MATCH.csv), 2 for approximate matching (search in videos), 3 for normalized metadata matching
         `details` (ResearchDetails): If specified, more information about the search and the response will be populated for use by the caller.
 
     Raises:
@@ -363,7 +371,7 @@ def lookup_song(
                     if numeroCanzoniStampate >= 3:
                         continue
                     numeroCanzoniStampate += 1
-                    print(f"\tNO-MATCH: {song['title']} - {song['artists'][0]['name']} - {song['album']['name'] if song['album'] is not None else "no-album"} - {song['videoId']}")
+                    print(f"\tNO-MATCH: {song['title']} - {song['artists'][0]['name']} - {song['album']['name'] if song['album'] is not None else 'no-album'} - {song['videoId']}")
             
             #ripeto la ricerca senza considerare l'album (alcune canzoni non hanno un album).anche se il match non è perfetto, non ha senso loggare le canzoni trovate così
             print("\t-->Performing album-independent matching...")
@@ -379,14 +387,14 @@ def lookup_song(
 
             #scrivo sul file di log le canzoni con match da controllare
             scriviFile(["Spotify", track_name, artist_name, album_name])
-            scriviFile(["YouTubeMusic", songs[0]['title'], songs[0]['artists'][0]['name'], songs[0]['album']['name'] if songs[0]['album'] is not None else "no-album", f"https://youtu.be/{songs[0]['videoId']}"])
+            scriviFile(["YouTubeMusic", songs[0]['title'], songs[0]['artists'][0]['name'], songs[0]['album']['name'] if songs[0]['album'] is not None else 'no-album', f"https://youtu.be/{songs[0]['videoId']}"])
             scriviFile([])
 
             matchIncompleto_count += 1 #conto un match incompleto in più
 
             return songs[0]#aggiunto: se non trovo un match preciso, uso la prima canzone
             raise ValueError(
-                f"Did not find {track_name} by {artist_name} from {album_name}. Added the first result of the list"
+                f"Did not find {track_name} by {artist_name} from {album_name}"
             )
 
         case 2:
@@ -450,14 +458,14 @@ def lookup_song(
                     if numeroCanzoniStampate >= 3:
                         continue
                     numeroCanzoniStampate += 1
-                    print(f"\tNO-MATCH: {song['title']} - {song['artists'][0]['name']} - {song['album']['name'] if song['album'] is not None else "no-album"} - {song['videoId']}")
+                    print(f"\tNO-MATCH: {song['title']} - {song['artists'][0]['name']} - {song['album']['name'] if song['album'] is not None else 'no-album'} - {song['videoId']}")
             
             #se ancora non ho trovato nulla loggo e uso il primo risultato
             print(f"\t-->NOT FOUND. using first result: https://youtu.be/{songs[0]['videoId']}")
 
             #scrivo sul file di log le canzoni con match da controllare
             scriviFile(["Spotify", track_name, artist_name, album_name])
-            scriviFile(["YouTubeMusic", songs[0]['title'], songs[0]['artists'][0]['name'], songs[0]['album']['name'] if songs[0]['album'] is not None else "no-album", f"https://youtu.be/{songs[0]['videoId']}"])
+            scriviFile(["YouTubeMusic", songs[0]['title'], songs[0]['artists'][0]['name'], songs[0]['album']['name'] if songs[0]['album'] is not None else 'no-album', f"https://youtu.be/{songs[0]['videoId']}"])
             scriviFile([])
 
             matchIncompleto_count += 1 #conto un match incompleto in più
@@ -494,7 +502,7 @@ def copier(
             )
             print("      'PL_DhcdsaJ7echjfdsaJFhdsWUd73HJFca'")
             sys.exit(1)
-        print(f"DESTINAZIONE: Youtube Playlist: {yt_pl['title']}")
+        print(f"DESTINATION: Youtube Playlist: {yt_pl['title']}")
 
     tracks_added_set = set()
     global numeroTracciaCorrente  # Dichiara che stiamo usando la variabile globale
@@ -502,9 +510,9 @@ def copier(
     src_tracks, src_tracks_copy = tee(src_tracks)  # Duplica l'iteratore perché non può essere consumato più volte
     global numeroTotaleTracce  # Dichiara che stiamo usando la variabile globale
     numeroTotaleTracce = sum(1 for _ in src_tracks_copy)  # Conta gli elementi consumando la copia
-    print(f"Numero totale di tracce da copiare: {numeroTotaleTracce}")
+    print(f"Total number of tracks to copy: {numeroTotaleTracce}")
 
-    inizializzaFile("canzoniNO-MATCH.csv")#Aggiunto
+    inizializzaFile("mismatched_songs.csv")#Aggiunto
 
     for src_track in src_tracks:
         print("======\n\n======")#aggiunto
@@ -548,8 +556,8 @@ def copier(
             print("(DUPLICATE, this track has already been added)")
             global duplicate_count  # Dichiara che stiamo usando la variabile globale
             duplicate_count += 1
-            scriviFile(["DUPLICATE (presente)(YTMusic)", dst_track['title'], yt_artist_name, album_str])  # Aggiunto per loggare le canzoni duplicate
-            scriviFile(["DUPLICATE (saltata)(Spotify)", src_track.title, src_track.artist, src_track.album])
+            scriviFile(["DUPLICATE (added)(YTMusic)", dst_track['title'], yt_artist_name, album_str])  # Aggiunto per loggare le canzoni duplicate
+            scriviFile(["DUPLICATE (skipped)(Spotify)", src_track.title, src_track.artist, src_track.album])
         tracks_added_set.add(dst_track["videoId"])
 
         if not dry_run:
@@ -598,7 +606,7 @@ def copy_playlist(
     """
 
     if spotify_playlist_id == "":
-        print("ERROR: Campo sorgente non può essere vuoto")
+        print("ERROR: Source field cannot be empty")
         return
 
     print("Using search algo n°: ", yt_search_algo)
@@ -610,11 +618,11 @@ def copy_playlist(
         pl_name = ytmusic_playlist_id[1:]
 
         ytmusic_playlist_id = get_playlist_id_by_name(yt, pl_name)
-        print(f"Cerco nella libreria di youtube music la playlist '{pl_name}': id={ytmusic_playlist_id}")
+        print(f"Searching in YouTube Music library for playlist '{pl_name}': id={ytmusic_playlist_id}")
 
     if ytmusic_playlist_id == "" or ytmusic_playlist_id is None: # creo nuova playlist con nome = nome della playlist spotify
         if pl_name == "":
-            print("No playlist name or ID provided, creating playlist...")
+            print("No playlist name or ID provided, creating playlist using source Spotify playlist name...")
             spotify_pls: dict = load_playlists_json()
             for pl in spotify_pls["playlists"]:
                 if len(pl.keys()) > 3 and pl["id"] == spotify_playlist_id:
@@ -641,12 +649,12 @@ def copy_playlist(
     if ytmusic_playlist_id == "-": # passo None a funzione copier: non crea/aggiunge alla playlist, ma mette like ai brani, letti al contrario da spotify per inserirli in ordine cronologico
         ytmusic_playlist_id = None
         reverse_playlist = True
-        print(f"NOTE: Metto like alle canzoni/video senza inserirle in una playlist. verranno aggiunte ai brani piaciuti di YouTube Music")
+        print(f"NOTE: Liking songs/videos without adding them to a playlist. They will be added to YouTube Music liked songs")
 
     if spotify_playlist_id == "-": # passo None a iteratore iter_spotify_playlist: usa i brani preferiti di spotify come sorgente, letti al contrario per inserirli in ordine cronologico
         spotify_playlist_id = None
         reverse_playlist = True # verificare?
-        print(f"NOTE: Uso come sorgente i brani preferiti di Spotify")
+        print(f"NOTE: Using Spotify liked songs as source")
     
     spotify_pls: dict = load_playlists_json()
     for pl in spotify_pls["playlists"]:
@@ -655,8 +663,8 @@ def copy_playlist(
 
 
     global playlistSorgente, playlistDestinazione  # Dichiara che stiamo usando le variabili globali
-    playlistSorgente = f"{pl_name_spotify} - {'brani salvati Spotify' if spotify_playlist_id is None else spotify_playlist_id}"
-    playlistDestinazione = f"{pl_name} - {'brani salvati YoutubeMusic' if ytmusic_playlist_id is None else ytmusic_playlist_id}"
+    playlistSorgente = f"{pl_name_spotify} - {'saved songs Spotify' if spotify_playlist_id is None else spotify_playlist_id}"
+    playlistDestinazione = f"{pl_name} - {'saved songs YoutubeMusic' if ytmusic_playlist_id is None else ytmusic_playlist_id}"
     
     copier(
         iter_spotify_playlist(
