@@ -5,13 +5,13 @@ import sys
 import os
 import time
 import re
-from itertools import tee
+from itertools import islice, tee
 from datetime import datetime  # Importa il modulo datetime
 import signal
 
 from ytmusicapi import YTMusic
 from typing import Optional, Union, Iterator, Dict, List
-from collections import namedtuple
+from collections import deque, namedtuple
 from dataclasses import dataclass, field
 from spotify2ytmusic.normalized_metadata_algorithm import *
 
@@ -22,6 +22,7 @@ duplicate_count = 0 #aggiunta per contare le tracce duplicate
 error_count = 0 #aggiunta per contare le tracce non trovate
 playlistSorgente = ""  # Variabile globale per la playlist sorgente
 playlistDestinazione = ""  # Variabile globale per la playlist destinazione
+stopLoop = False  # Global variable to signal termination
 
 def handle_termination(signum, frame):
     print(f"Program terminated with signal {signum}. Cleaning up...", file=sys.__stdout__) # Stampa direttamente su console
@@ -504,13 +505,37 @@ def copier(
             sys.exit(1)
         print(f"DESTINATION: Youtube Playlist: {yt_pl['title']}")
 
+    global stopLoop
+    stopLoop = False
+
     tracks_added_set = set()
     global numeroTracciaCorrente  # Dichiara che stiamo usando la variabile globale
     numeroTracciaCorrente = 0  # Inizializza il contatore delle tracce processate
+    is_resuming = False
+
+    if os.path.exists("copier-progress.txt"):
+        is_resuming = True
+        with open('copier-progress.txt', 'r') as input:
+            numeroTracciaCorrente = int(input.read().strip())
+            resume_from_song_index = numeroTracciaCorrente + 1
+        #scriviFile([f"Resuming from track {test}"])
+        #scriviFile([])
+
     src_tracks, src_tracks_copy = tee(src_tracks)  # Duplica l'iteratore perché non può essere consumato più volte
+
+    if numeroTracciaCorrente > 0:
+        deque(islice(src_tracks, numeroTracciaCorrente), maxlen=0)  # fast throw-away
+
+    #src_tracks_copy, src_tracks_copy_slice = tee(src_tracks_copy)  # Duplicate again for slicing
     global numeroTotaleTracce  # Dichiara che stiamo usando la variabile globale
     numeroTotaleTracce = sum(1 for _ in src_tracks_copy)  # Conta gli elementi consumando la copia
+    #totalTracksAfterSlice = sum(1 for _ in src_tracks_copy_slice)  # Conta gli elementi consumando la copia
+
     print(f"Total number of tracks to copy: {numeroTotaleTracce}")
+    if is_resuming:
+        print(f"Resuming from track {resume_from_song_index}")
+
+    #print(f"Total number of tracks after slice: {totalTracksAfterSlice}")
 
     inizializzaFile("mismatched_songs.csv")#Aggiunto
 
@@ -579,8 +604,17 @@ def copier(
                     )
                     time.sleep(exception_sleep)
                     exception_sleep *= 1.2
+        else:
+            print("(dry run, not actually adding to YTMusic)")
 
-        if track_sleep:
+        if stopLoop:
+            with open('copier-progress.txt', 'w') as output:
+                output.write(str(numeroTracciaCorrente))  # copier-progress contains the index of the last processed track
+            print("\n")
+            print("Stopping...")
+            print(f"Should resume from track {numeroTracciaCorrente + 1} next time")
+            break
+        elif track_sleep:
             time.sleep(track_sleep)
 
     print()
@@ -734,3 +768,8 @@ def copy_all_playlists(
         print("\nPlaylist done!\n")
 
     print("All done!")
+
+
+def stop_loop_function():
+    global stopLoop
+    stopLoop = True
