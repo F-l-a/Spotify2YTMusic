@@ -49,7 +49,7 @@ def create_button(parent: tk.Frame, text: str, **kwargs) -> tk.Button:
         text=text,
         font=("Helvetica", 14),
         background="#696969",
-        foreground="white",
+        foreground="black",
         border=1,
         **kwargs,
     )
@@ -163,12 +163,22 @@ class Window:
                     backend.iter_spotify_playlist(),
                     None,
                     False,
+                    # True,  # dry run
                     0.1,
                     self.var_algo.get(),
                 ),
-                next_tab=self.tab4,
+                next_tab=self.tab3,
             ),
-        ).pack(anchor=tk.CENTER, expand=True)
+        ).pack(anchor=tk.W, expand=True)
+        create_button(
+            self.tab3,
+            text="STOP",
+            command=lambda: self.call_func(
+                args=(),
+                func=backend.stop_loop_function,
+                next_tab=self.tab3
+            ),
+        ).pack(anchor=tk.E, expand=True)
 
         # tab4
         create_label(
